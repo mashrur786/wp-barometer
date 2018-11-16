@@ -34,11 +34,16 @@ Copyright 2018 Mashrur Chowdhury.
         exit;
     }
 
-    register_activation_hook( __FILE__, 'wpbarometer_init' );
 
-    if(!function_exists(wpbarometer_init)){
-        function wpbarometer_init(){
+
+    // Hook for adding admin menus
+    add_action('admin_menu', 'wp_wpbarometer_to_tool');
+    function wp_wpbarometer_to_tool(){
+            add_management_page( __('WP Barometer'), __('WP-Barometer','menu-test'), 'manage_options', 'testtools', 'wp_barometer_page');
+    }
+
+    function wp_barometer_page(){
+        echo '<h1> Welcome to wp barometer </h1>';
     }
 
 
-}
