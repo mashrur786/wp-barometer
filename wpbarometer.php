@@ -224,7 +224,6 @@ Copyright 2018 Mashrur Chowdhury.
         </table>
     <?php
 
-
     /*
     * Saves the meta box info for the post
     */
