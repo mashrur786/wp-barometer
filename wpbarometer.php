@@ -77,8 +77,19 @@ Copyright 2018 Mashrur Chowdhury.
     * load bootstrap stylesheet and js for admin page
     */
     function wp_barometer_admin_load_assets() {
-         wp_register_style( 'bootstrap stylesheet',  plugin_dir_url( __FILE__ ) . 'admin/css/bootstrap.css', false, '4.1.3' );
-         wp_enqueue_style( 'bootstrap stylesheet' );
+
+         wp_register_style( 'Bootstrap',  plugin_dir_url( __FILE__ ) . 'admin/css/bootstrap.css', false, '4.1.3' );
+         wp_enqueue_style( 'Bootstrap' );
+         wp_register_style( 'jQuery Hex Colorpicker',  plugin_dir_url( __FILE__ ) . 'admin/css/jquery-hex-colorpicker.css', false, '1.1' );
+         wp_enqueue_style( 'jQuery Hex Colorpicker' );
+         wp_register_style( 'jquery ui',  'http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.0/themes/smoothness/jquery-ui.css', false, '1.11.0' );
+         wp_enqueue_style( 'jquery ui' );
+         wp_register_script( 'jquery ui',  'http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.0/jquery-ui.min.js', false, '1.12.1' );
+         wp_enqueue_script( 'jquery ui' );
+         wp_register_script( 'jQuery Hex Colorpicker',  plugin_dir_url( __FILE__ ) . 'admin/js/jquery-hex-colorpicker.min.js', false, '1.1' );
+         wp_enqueue_script( 'jQuery Hex Colorpicker' );
+
+
     }
     add_action( 'admin_enqueue_scripts', 'wp_barometer_admin_load_assets' );
 
@@ -99,8 +110,9 @@ Copyright 2018 Mashrur Chowdhury.
 
     /**
     * Meta box display for the barometer post type.
-    *
+    * @param $post object
     * Provides the form controls necessary to select the color of the barometer as well as:
+    * @return  null
     */
     function wpbarometer_metabox_display($post){
 
@@ -119,10 +131,25 @@ Copyright 2018 Mashrur Chowdhury.
         render_field($post->ID, 'Counter Speed','wp_bar_counter_speed');
         render_field($post->ID, 'Display Total','wp_bar_display_total', 'checkbox');
 
-
+        echo '<script> 
+                	jQuery(".color-container").hexColorPicker({
+		                    "container":"dialog",
+		                    "colorModel":"hsv",
+		                    "pickerWidth":300,
+		                    "size":7,
+		                    "style":"hex"
+	                });
+ 
+            </script>';
 
     }
 
+    /**
+    * Meta box display for the barometer post type.
+    * @param $id, $label, $fieldName, $fieldType, $args array
+    *
+    * @return  string
+    */
     function render_field($id, $label ,$fieldName, $fieldType = "text", $args = []){
         // Get the location data if it's already been entered
         $key_value = get_post_meta($id, $fieldName, true);
@@ -147,14 +174,17 @@ Copyright 2018 Mashrur Chowdhury.
                 break;
 
             case 'checkbox' :
-
                 $output .= '<div class="form-check">';
                 $output .= '<input name="'. $fieldName .'" class="form-check-input" type="checkbox"' . ($key_value == 'on'? 'checked' : ' ') .'>';
                 $output .= '</div>';
                 break;
 
             default:
-                $output .= '<input type="text" name="'. $fieldName. '" value="' . $key_value . '" class="form-control">';
+                $extra_class = '';
+                if(strpos($fieldName, 'color'))
+                    $extra_class = 'color-container';
+
+                $output .= '<input type="text" name="'. $fieldName. '" value="' . $key_value . '" class="form-control ' . $extra_class . '">';
                 break;
           
         }
@@ -164,10 +194,9 @@ Copyright 2018 Mashrur Chowdhury.
 
     }
 
-    /*
-    * Saves the meta box info for the post
+    /** Saves the meta box info for the post
      * - wp_barometer_meta_save
-     * @param Post ID
+     * @param $post_id
      *
      * @return String
     */
@@ -213,7 +242,7 @@ Copyright 2018 Mashrur Chowdhury.
     add_action( 'save_post', 'wp_barometer_meta_save', 10, 3);
 
     /**
-    * Register all shortcodes
+    * Register  WP Barometer shortcode
     *
     * @return null
     */
@@ -226,16 +255,60 @@ Copyright 2018 Mashrur Chowdhury.
     * WP Barometer Shortcode Callback
     * - WP Barometer
     *
-    * @param Array $atts
+    * @param Array $args
     *
     * @return string
     */
     function wp_barometer_shortcode($args) {
+       //$output = '';
+       $args = shortcode_atts( array(
+            'id' => '',
+       ), $args);
 
+       $post_id = $args['id'];
+       ob_start();
+       do_action('wp_barometer_before_render');
+       ?>
 
-       echo 'hi786';
+        <div id="jqmeter-container-<?php echo  $post_id ?>"></div>
+        <script>
+            var $ = jQuery;
+            $(document).ready(function(){
 
+            var container =  $('#jqmeter-container-'+ <?php echo $post_id ?>);
+            var goal = String(<?php echo get_post_meta($post_id, 'wp_bar_target', true); ?>);
+            var raised = String(<?php echo get_post_meta($post_id, 'wp_bar_raised', true); ?>);
+            var bgColor = "<?php echo get_post_meta($post_id, 'wp_bar_bgcolor', true); ?>";
+            var barColor = "<?php echo get_post_meta($post_id, 'wp_bar_color', true); ?>";
+
+                $(container).jQMeter(
+                    {
+                        goal: goal ,
+                        raised: raised ,
+                        width:'100%',
+                        bgColor: bgColor,
+                        barColor: barColor,
+                        counterSpeed: 1000,
+                        animationSpeed: 1000,
+                        displayTotal: true
+
+                    }
+                );
+            });
+        </script>
+        <?php
+
+       return ob_get_clean();
+
+  
     }
+
+    function wp_barometer_enqueue_script() {
+             wp_enqueue_script( 'bootstrap stylesheet',  plugin_dir_url( __FILE__ ) . 'public/jqmeter.js', false, '4.1.3' );
+    }
+    add_action( 'wp_barometer_before_render', 'wp_barometer_enqueue_script' );
+
+
 
 
 
