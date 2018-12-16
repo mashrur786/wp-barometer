@@ -4,7 +4,7 @@ Plugin Name: WP Barometer
 Plugin URI: https://wordpress.org/plugins/wpbarometer/
 Description: WP Barometer is a simple wordpress plugins which uses a simple shortcode to display custom styled barometer on your WordPress site for your fund-raising activities.
 Version: 1
-Author: Mashrur Chwodhury
+Author: Mashrur Chowdhury
 Author URI: http://wpbarometer.com
 Text Domain: wpbarometer
 Domain Path: /languages
@@ -36,8 +36,6 @@ Copyright 2018 Mashrur Chowdhury.
     }
 
 
-
-
     /*
     * Registers the wp-Barometer custom post type. One "post" for each bar.
     * It's not public (we'll give it a small UI wrapper in custom admin)
@@ -66,7 +64,8 @@ Copyright 2018 Mashrur Chowdhury.
 		'capability_type' => 'post',
 		'show_in_nav_menus' => true,
 		'supports' => array(
-			'title'
+			'title',
+            'editor'
 			),
 		);
 	    register_post_type( 'wpbarometer', $args );
@@ -88,7 +87,6 @@ Copyright 2018 Mashrur Chowdhury.
          wp_enqueue_script( 'jquery ui' );
          wp_register_script( 'jQuery Hex Colorpicker',  plugin_dir_url( __FILE__ ) . 'admin/js/jquery-hex-colorpicker.min.js', false, '1.1' );
          wp_enqueue_script( 'jQuery Hex Colorpicker' );
-
 
     }
     add_action( 'admin_enqueue_scripts', 'wp_barometer_admin_load_assets' );
@@ -118,7 +116,6 @@ Copyright 2018 Mashrur Chowdhury.
 
         // Nonce field to validate form request came from current site
         wp_nonce_field(basename(__FILE__), 'wp_barometer_fields');
-        // Get the location data if it's already been entered
         // Output the field
         render_field($post->ID,'Target Amount', 'wp_bar_target', 'number');
         render_field($post->ID, 'Amount Raised','wp_bar_raised', 'number');
@@ -130,17 +127,20 @@ Copyright 2018 Mashrur Chowdhury.
         render_field($post->ID, 'Animation Speed','wp_bar_animation_speed');
         render_field($post->ID, 'Counter Speed','wp_bar_counter_speed');
         render_field($post->ID, 'Display Total','wp_bar_display_total', 'checkbox');
+        //display
+        echo '<div class="alert alert-success" role="alert">
+               Copy the Shortcodes to display Berometer<b> [wpbarometer id=' . $post->ID . ' ]</b>
+               </div>';
 
         echo '<script> 
                 	jQuery(".color-container").hexColorPicker({
 		                    "container":"dialog",
 		                    "colorModel":"hsv",
 		                    "pickerWidth":300,
-		                    "size":7,
+		                    "size":8,
 		                    "style":"hex"
 	                });
- 
-            </script>';
+             </script>';
 
     }
 
@@ -153,8 +153,9 @@ Copyright 2018 Mashrur Chowdhury.
     function render_field($id, $label ,$fieldName, $fieldType = "text", $args = []){
         // Get the location data if it's already been entered
         $key_value = get_post_meta($id, $fieldName, true);
+
         // Output the field
-        $output = "<label>$label</label>";
+        $output = "<label style='font-size: 1.3em'>$label</label>";
         switch ($fieldType) {
 
             case 'number' :
@@ -165,26 +166,33 @@ Copyright 2018 Mashrur Chowdhury.
                 $output .= '<br>';
                 $output .= "<Select name='" .$fieldName. "' class='form-control'>";
                 foreach($args as $arg){
-                    if($key_value == $arg)
+                    if($key_value == $arg){
                         $output .='<option value="' .  $arg  . '" class="form-control" selected>'. ucfirst($arg) .'</option>';
-
-                    $output .='<option value="' .  $arg  . '" class="form-control" selected>'. ucfirst($arg) .'</option>';
+                    }
+                    $output .='<option value="' .  $arg  . '" class="form-control">'. ucfirst($arg) .'</option>';
                 }
                 $output .= "</Select>";
                 break;
 
             case 'checkbox' :
-                $output .= '<div class="form-check">';
-                $output .= '<input name="'. $fieldName .'" class="form-check-input" type="checkbox"' . ($key_value == 'on'? 'checked' : ' ') .'>';
+
+                $output = '<div class=" form-group form-check">';
+                $output .= '<input style="margin: 3px 0 0 -20px;"  id="'. $fieldName .'" name="'. $fieldName .'" class="form-check-input" type="checkbox" ' . ($key_value == 'on' ? 'checked' : '') .'>';
+                $output .= "<label for='" . $fieldName . "' class='form-check-label' style='font-size: 1.3em'>$label</label>";
                 $output .= '</div>';
                 break;
 
             default:
                 $extra_class = '';
-                if(strpos($fieldName, 'color'))
+                $styles = '';
+                if(strpos($fieldName, 'color')){
                     $extra_class = 'color-container';
+                    if(!empty($key_value)){
+                        $styles = "background-color:".$key_value."; color: white;";
+                    }
+                }
 
-                $output .= '<input type="text" name="'. $fieldName. '" value="' . $key_value . '" class="form-control ' . $extra_class . '">';
+                $output .= '<input style="' . $styles . '" type="text" name="'. $fieldName. '" value="' . $key_value . '" class="form-control ' . $extra_class . '">';
                 break;
           
         }
@@ -225,18 +233,35 @@ Copyright 2018 Mashrur Chowdhury.
             'wp_bar_orientation',
             'wp_bar_animation_speed',
             'wp_bar_counter_speed',
-            'wp_bar_display_total',
+            'wp_bar_display_total'
             ];
 
+        $inserted_keys = [];
+        //array to store the keys to be deleted after update
+
+
         //die(var_dump($_POST));
+        //compare post metas in $_POST and $meta_keys and if found only update those post metas in the database
         foreach($_POST as $key => $value){
+
             if(in_array($key, $meta_keys)) {
-                 if (isset($_POST[$key])) {
+                $inserted_keys[] = $key;
+                 if (isset($_POST[$key]))
                      update_post_meta($post_id, $key, sanitize_text_field($value));
-                 }
+
             }
+        }
+
+        //del keys in the db which weren't present in $_POST
+        $del_keys = array_diff($meta_keys, $inserted_keys);
+
+        foreach($del_keys as $key){
+            if(metadata_exists('post', $post_id, $key))
+                delete_post_meta($post_id, $key);
 
         }
+
+
 
     }
     add_action( 'save_post', 'wp_barometer_meta_save', 10, 3);
@@ -269,6 +294,9 @@ Copyright 2018 Mashrur Chowdhury.
        ob_start();
        do_action('wp_barometer_before_render');
        ?>
+        <?php echo get_post_field('post_content', $post_id); ?>
+        <br>
+        <br>
 
         <div id="jqmeter-container-<?php echo  $post_id ?>"></div>
         <script>
@@ -278,22 +306,29 @@ Copyright 2018 Mashrur Chowdhury.
             var container =  $('#jqmeter-container-'+ <?php echo $post_id ?>);
             var goal = String(<?php echo get_post_meta($post_id, 'wp_bar_target', true); ?>);
             var raised = String(<?php echo get_post_meta($post_id, 'wp_bar_raised', true); ?>);
+            var width = "<?php echo get_post_meta($post_id, 'wp_bar_width', true); ?>";
+            var height = "<?php echo get_post_meta($post_id, 'wp_bar_height', true); ?>";
+            var orientation = "<?php echo get_post_meta($post_id, 'wp_bar_orientation', true); ?>";
             var bgColor = "<?php echo get_post_meta($post_id, 'wp_bar_bgcolor', true); ?>";
             var barColor = "<?php echo get_post_meta($post_id, 'wp_bar_color', true); ?>";
+            var counterSpeed = <?php echo get_post_meta($post_id, 'wp_bar_counter_speed', true); ?>;
+            var animationSpeed = <?php echo get_post_meta($post_id, 'wp_bar_animation_speed', true); ?>;
+            var displayTotal = "<?php echo get_post_meta($post_id, 'wp_bar_display_total', true); ?>";
+                displayTotal = (displayTotal === "on");
 
-                $(container).jQMeter(
-                    {
-                        goal: goal ,
-                        raised: raised ,
-                        width:'100%',
-                        bgColor: bgColor,
-                        barColor: barColor,
-                        counterSpeed: 1000,
-                        animationSpeed: 1000,
-                        displayTotal: true
-
-                    }
-                );
+            $(container).jQMeter(
+                {
+                    goal: goal ,
+                    raised: raised ,
+                    width: width + "%",
+                    height: height + "px",
+                    meterOrientation: orientation,
+                    bgColor: bgColor,
+                    barColor: barColor,
+                    counterSpeed: counterSpeed,
+                    animationSpeed: animationSpeed,
+                    displayTotal: displayTotal
+                })
             });
         </script>
         <?php
@@ -307,6 +342,24 @@ Copyright 2018 Mashrur Chowdhury.
              wp_enqueue_script( 'bootstrap stylesheet',  plugin_dir_url( __FILE__ ) . 'public/jqmeter.js', false, '4.1.3' );
     }
     add_action( 'wp_barometer_before_render', 'wp_barometer_enqueue_script' );
+
+
+     // Admin footer modification
+    function wp_barometer_admin_footer ()
+    {
+        echo '<span id="footer-thankyou">WP Barometer | Developed by <a href="http://www.mashrur.co.uk" target="_blank">Mashrur Chowdhury</a></span>';
+    }
+
+    add_filter('admin_footer_text', 'wp_barometer_admin_footer');
+
+    // Admin footer modification
+
+    add_filter( 'admin_print_styles', 'insert_header_wpse_51023' );
+
+    function insert_header_wpse_51023()
+    {
+        //echo '<div style="width:200px;"><img src="'. plugin_dir_url( __FILE__ ) . 'admin/imgs/wpbarometer.png" width="100%" /></div>';
+    }
 
 
 

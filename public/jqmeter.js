@@ -25,6 +25,7 @@ License: 	Dual licensed under the MIT and GPL licenses.
 
 	$.jQMeter = function(elem, options) {
 		//Define plugin options
+		console.log(options);
 		goal = parseInt((options.goal).replace(/\D/g,''));
 		raised = parseInt((options.raised).replace(/\D/g,''));
 		width = options.width;
@@ -49,14 +50,29 @@ License: 	Dual licensed under the MIT and GPL licenses.
 		//Create the thermometer layout based on orientation option
 		if(meterOrientation == 'vertical') {
 
-			$(elem).html('<div class="therm outer-therm vertical"><div class="therm inner-therm vertical"><span style="display:none;">' + total + '</span></div></div>');
+			$(elem).html('<div class="therm outer-therm vertical">' +
+								'<i class="hovered-arrow"></i>' +
+								'<div class="therm inner-therm vertical">' +
+									'<span style="display:none;">' + total + '</span>' +
+									'<i class="hovered-raised">' + raised +' </i>' +
+								'</div>' +
+								'<i class="hovered-raised"> £' + goal +'</i>' +
+							'</div>');
 			$(elem).children('.outer-therm').attr('style','width:' + width + ';height:' + height + ';background-color:' + bgColor);
 			$(elem).children('.outer-therm').children('.inner-therm').attr('style','background-color:' + barColor + ';height:0;width:100%');
 			$(elem).children('.outer-therm').children('.inner-therm').animate({height : total + '%'},animationSpeed);
 
 		} else {
 
-			$(elem).html('<div class="therm outer-therm"><div class="therm inner-therm"><span style="display:none;">' + total + '</span></div></div>');
+			$(elem).html('<div class="therm outer-therm">' +
+							'<i class="hovered-arrow"></i>' +
+							'<div class="therm inner-therm">' +
+								'<i class="hovered-arrow"></i>' +
+								'<span style="display:none;">' + total + '</span>' +
+								'<i class="hovered-raised">' + raised +' </i>' +
+							'</div>' +
+							'<i class="hovered-raised"> £' + goal +'</i>' +
+						'</div>');
 			$(elem).children('.outer-therm').attr('style','width:' + width + ';height:' + height + ';background-color:' + bgColor);
 			$(elem).children('.outer-therm').children('.inner-therm').attr('style','background-color:' + barColor + ';height:' + height + ';width:0');
 			$(elem).children('.outer-therm').children('.inner-therm').animate({width : total + '%'},animationSpeed);
@@ -74,21 +90,31 @@ License: 	Dual licensed under the MIT and GPL licenses.
 			  padding = '10px 0';
 			}
 
-			$(elem).children('.outer-therm').children('.inner-therm').children().show();
-			$(elem).children('.outer-therm').children('.inner-therm').children().css('padding', padding);
+			$(elem).children('.outer-therm').children('.inner-therm').children('span').show();
+			$(elem).children('.outer-therm').children('.inner-therm').children('span').css('padding', padding);
 
 			//Animate the percentage total. Borrowed from: http://stackoverflow.com/questions/23006516/jquery-animated-number-counter-from-zero-to-value
 			$({ Counter: 0 }).animate({ Counter: $(elem).children('.outer-therm').children('.inner-therm').children().text() }, {
   				duration : counterSpeed,
   				easing : 'swing',
   				step : function() {
-   					$(elem).children('.outer-therm').children('.inner-therm').children().text(Math.ceil(this.Counter) + '%');
+   					$(elem).children('.outer-therm').children('.inner-therm').children('span').text(Math.ceil(this.Counter) + '%');
   				}
 			});
+			//animate the raised amount
+				$({ Counter: 0 }).animate({ Counter: $(elem).children('.outer-therm').children('.inner-therm').children('i.hovered-raised').text() }, {
+  				duration : counterSpeed,
+  				easing : 'swing',
+  				step : function() {
+   					$(elem).children('.outer-therm').children('.inner-therm').children('i.hovered-raised').text( '£' + Math.ceil(this.Counter));
+  				}
+			});
+
+
 		}
 
 		//Add CSS
-		$(elem).append('<style>.therm{height:30px;border-radius:5px;}.outer-therm{margin:20px 0;}.inner-therm span {color: #fff;display: inline-block;float: right;font-family: Trebuchet MS;font-size: 20px;font-weight: bold;}.vertical.inner-therm span{width:100%;text-align:center;}.vertical.outer-therm{position:relative;}.vertical.inner-therm{position:absolute;bottom:0;}</style>');
+		$(elem).append('<style>.therm{height:30px;border-radius:5px;}.outer-therm{margin:20px 0; position: relative}.inner-therm{ position: relative}.inner-therm span {color: #fff;display: inline-block;float: right;font-family: Trebuchet MS;font-size: 20px;font-weight: bold;} i.hovered-arrow {border-top: 10px solid #8e8383;  border-right: 10px solid transparent;border-left: 10px solid transparent;position: absolute;top: -2rem; right: -1rem ; color: darkgray}  i.hovered-raised { font-family: inherit;position: absolute; top: -5rem; right: -2rem; color: #8e8383}.vertical.inner-therm span{width:100%;text-align:center;}.vertical.outer-therm{position:relative;}.vertical.inner-therm{position:absolute;bottom:0;}</style>');
 
 	};
 
