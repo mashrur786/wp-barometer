@@ -110,7 +110,6 @@ License: 	Dual licensed under the MIT and GPL licenses.
   				}
 			});
 
-
 		}
 
 		//Add CSS
